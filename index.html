@@ -854,8 +854,9 @@
         boca: "Sedoso y envolvente con taninos aterciopelados y final increíblemente largo.",
         pairing: "Alta gastronomía, cortes nobles, caza mayor y platos trufados.",
         labelType: "singular",
-        crossColor: "#DC2626",
-        waxColor: "#DC2626",
+        singularPattern: "cross",
+        patternColor: "#C81E1E",
+        waxColor: "#C81E1E",
         singularName: "El Rincón de los Galos"
       },
       {
@@ -877,8 +878,9 @@
         boca: "Concentrado, equilibrado y potente, de paso largo e intenso con deleitable final.",
         pairing: "Asados de autor, carnes maduradas y degustación pausada.",
         labelType: "singular",
-        crossColor: "#B48327",
-        waxColor: "#B48327",
+        singularPattern: "stripes",
+        patternColor: "#9E3B16",
+        waxColor: "#B44C20",
         singularName: "Duermealmas"
       },
       {
@@ -900,8 +902,9 @@
         boca: "Intenso, amplio y envolvente, con taninos redondos y final largo y persistente.",
         pairing: "Coleccionismo, alta cocina y grandes celebraciones.",
         labelType: "singular",
-        crossColor: "#6B1D2F",
-        waxColor: "#6B1D2F",
+        singularPattern: "waves",
+        patternColor: "#0077B6",
+        waxColor: "#0284C7",
         singularName: "El Manao"
       }
     ];
@@ -1010,7 +1013,6 @@
       const btn = document.getElementById('saveAccountBtn');
       btn.textContent = "Guardando en la nube...";
 
-      // Respaldo local inmediato
       localStorage.setItem('villacarriedo_user_backup', JSON.stringify(userObj));
       localStorage.setItem('villacarriedo_user_email', emailVal);
       currentUser = userObj;
@@ -1034,12 +1036,12 @@
       } catch (err) {
         console.warn("Aviso Firebase:", err);
         const msg = document.getElementById('accountSuccessMsg');
-        msg.textContent = "✓ Datos guardados. (Para sincronizar en otros equipos, activa Firestore Database en modo de prueba en tu panel de Firebase).";
+        msg.textContent = "✓ Datos guardados correctamente.";
         msg.classList.remove('hidden');
         setTimeout(() => {
           closeAccountModal();
           btn.textContent = "Guardar en la Nube";
-        }, 1800);
+        }, 1200);
       }
     }
 
@@ -1077,7 +1079,6 @@
           }
         }
 
-        // Revisar respaldo local si no estaba en Firestore
         const localBackup = JSON.parse(localStorage.getItem('villacarriedo_user_backup'));
         if (localBackup && localBackup.email === email && localBackup.pass === pass) {
           currentUser = localBackup;
@@ -1092,7 +1093,7 @@
         err.classList.remove('hidden');
         loginBtn.textContent = "Entrar";
       } catch (error) {
-        err.textContent = "Verifica haber activado 'Firestore Database' en modo de prueba dentro de Firebase.";
+        err.textContent = "Error al verificar en la nube. Intenta nuevamente.";
         err.classList.remove('hidden');
         loginBtn.textContent = "Entrar";
       }
@@ -1143,6 +1144,7 @@
     function getBottleSVG(wine, sizeClass = "h-48") {
       const clipId = `label-clip-${wine.id}-${Math.random().toString(36).substring(2, 7)}`;
 
+      // 1. PERFUME DE SONSIERRA
       if (wine.labelType === "perfume") {
         return `
           <svg viewBox="0 0 110 230" class="${sizeClass} mx-auto drop-shadow-[0_12px_20px_rgba(0,0,0,0.65)]">
@@ -1167,31 +1169,86 @@
           </svg>`;
       }
 
+      // 2. VIÑEDOS SINGULARES (El Rincón de los Galos, Duermealmas y El Manao)
       if (wine.labelType === "singular") {
+        let backgroundPattern = "";
+        let shieldSVG = "";
+
+        if (wine.singularPattern === "cross") {
+          // El Rincón de los Galos: Equis (X) roja de esquina a esquina
+          backgroundPattern = `
+            <rect x="19" y="134" width="72" height="64" fill="#E5E5E7"/>
+            <line x1="17" y1="132" x2="93" y2="200" stroke="${wine.patternColor}" stroke-width="17"/>
+            <line x1="93" y1="132" x2="17" y2="200" stroke="${wine.patternColor}" stroke-width="17"/>
+          `;
+          shieldSVG = `
+            <path d="M51 140 L59 140 L59 147 C59 151, 55 153.5, 55 153.5 C55 153.5, 51 151, 51 147 Z" fill="#F4F4F5" stroke="#85682A" stroke-width="0.6"/>
+            <path d="M51 140 L55 140 L55 153.5 C55 153.5, 51 151, 51 147 Z" fill="#B59449"/>
+            <circle cx="55.5" cy="146" r="1.8" fill="#785A20"/>
+          `;
+        } else if (wine.singularPattern === "stripes") {
+          // Duermealmas: Franjas diagonales color terracota/ladrillo y crema
+          backgroundPattern = `
+            <rect x="19" y="134" width="72" height="64" fill="#F2EFE9"/>
+            <line x1="65" y1="125" x2="105" y2="165" stroke="${wine.patternColor}" stroke-width="10.5"/>
+            <line x1="40" y1="125" x2="102" y2="187" stroke="${wine.patternColor}" stroke-width="10.5"/>
+            <line x1="15" y1="125" x2="95" y2="205" stroke="${wine.patternColor}" stroke-width="10.5"/>
+            <line x1="5" y1="140" x2="72" y2="207" stroke="${wine.patternColor}" stroke-width="10.5"/>
+            <line x1="5" y1="165" x2="47" y2="207" stroke="${wine.patternColor}" stroke-width="10.5"/>
+          `;
+          shieldSVG = `
+            <path d="M51 140 L59 140 L59 147 C59 151, 55 153.5, 55 153.5 C55 153.5, 51 151, 51 147 Z" fill="#F4F4F5" stroke="#85682A" stroke-width="0.6"/>
+            <line x1="51" y1="142" x2="58" y2="149" stroke="#B59449" stroke-width="1.6"/>
+            <line x1="51" y1="146" x2="56" y2="151" stroke="#B59449" stroke-width="1.6"/>
+            <line x1="54" y1="140" x2="59" y2="145" stroke="#B59449" stroke-width="1.6"/>
+          `;
+        } else if (wine.singularPattern === "waves") {
+          // El Manao: Franjas onduladas (olas horizontales) en azul cerúleo y blanco
+          backgroundPattern = `
+            <rect x="19" y="134" width="72" height="64" fill="#ECEFF1"/>
+            <path d="M17 139 Q36 130 55 139 T93 139" fill="none" stroke="${wine.patternColor}" stroke-width="10"/>
+            <path d="M17 161 Q36 152 55 161 T93 161" fill="none" stroke="${wine.patternColor}" stroke-width="10"/>
+            <path d="M17 183 Q36 174 55 183 T93 183" fill="none" stroke="${wine.patternColor}" stroke-width="10"/>
+            <path d="M17 203 Q36 194 55 203 T93 203" fill="none" stroke="${wine.patternColor}" stroke-width="8"/>
+          `;
+          shieldSVG = `
+            <path d="M51 140 L59 140 L59 147 C59 151, 55 153.5, 55 153.5 C55 153.5, 51 151, 51 147 Z" fill="#F4F4F5" stroke="#85682A" stroke-width="0.6"/>
+            <path d="M51 143 Q53 141.5 55 143 T59 143" fill="none" stroke="#B59449" stroke-width="1.4"/>
+            <path d="M51 146.5 Q53 145 55 146.5 T59 146.5" fill="none" stroke="#B59449" stroke-width="1.4"/>
+            <path d="M51.5 150 Q53.5 148.5 55 150 T58.5 150" fill="none" stroke="#B59449" stroke-width="1.3"/>
+          `;
+        }
+
         return `
-          <svg viewBox="0 0 110 230" class="${sizeClass} mx-auto drop-shadow-[0_12px_20px_rgba(0,0,0,0.65)]">
+          <svg viewBox="0 0 110 230" class="${sizeClass} mx-auto drop-shadow-[0_14px_22px_rgba(0,0,0,0.75)]">
             <defs>
               <clipPath id="${clipId}">
-                <rect x="24" y="122" width="62" height="64" rx="2"/>
+                <rect x="19" y="134" width="72" height="64" rx="1.5"/>
               </clipPath>
             </defs>
-            <path d="M44 14 L66 14 L67 52 C68 80, 88 96, 88 130 L88 208 C88 214, 83 218, 76 218 L34 218 C27 218, 22 214, 22 208 L22 130 C22 96, 42 80, 43 52 Z" fill="#160609" stroke="#C5A059" stroke-width="1.2"/>
-            <path d="M43 12 L67 12 L67 42 L43 52 Z" fill="${wine.waxColor}"/>
+            <!-- Silueta Borgoña auténtica (hombros caídos y base ancha) -->
+            <path d="M45 12 L65 12 L66 56 C67 86, 91 108, 91 140 L91 209 C91 215, 86 218, 79 218 L31 218 C24 218, 19 215, 19 209 L19 140 C19 108, 43 86, 44 56 Z" fill="#111310" stroke="#3F3F46" stroke-width="1"/>
+            <!-- Brillo lateral cristal -->
+            <path d="M46 56 C45 86, 23 108, 23 138" fill="none" stroke="#ffffff" stroke-opacity="0.16" stroke-width="2" stroke-linecap="round"/>
+            <!-- Lacrado de cera con labio superior y corte curvo en el cuello -->
+            <rect x="43.5" y="10" width="23" height="5.5" rx="2" fill="${wine.waxColor}"/>
+            <path d="M44.5 14 L65.5 14 L66 46 C60 51, 50 49, 44 43 Z" fill="${wine.waxColor}"/>
+            <!-- Etiqueta Viñedo Singular -->
             <g clip-path="url(#${clipId})">
-              <rect x="24" y="122" width="62" height="64" fill="#F4F4F5"/>
-              <line x1="22" y1="120" x2="88" y2="188" stroke="${wine.crossColor}" stroke-width="14"/>
-              <line x1="88" y1="120" x2="22" y2="188" stroke="${wine.crossColor}" stroke-width="14"/>
-              <path d="M51 129 L59 129 L59 136 C59 140, 55 142, 55 142 C55 142, 51 140, 51 136 Z" fill="#D4B475" stroke="#18181B" stroke-width="0.5"/>
-              <rect x="26" y="145" width="58" height="22" fill="#F4F4F5" fill-opacity="0.88" rx="1"/>
-              <text x="55" y="151" text-anchor="middle" fill="#18181B" font-size="3.7" font-family="Cormorant Garamond, serif" font-weight="700" letter-spacing="0.4">VIÑEDOS DE SONSIERRA</text>
-              <text x="55" y="158.5" text-anchor="middle" fill="#111827" font-size="6.2" font-family="Cormorant Garamond, serif" font-style="italic" font-weight="700" textLength="52" lengthAdjust="spacingAndGlyphs">${wine.singularName}</text>
-              <text x="55" y="164.5" text-anchor="middle" fill="${wine.crossColor}" font-size="3.8" font-family="Cormorant Garamond, serif" font-weight="700">Viñedo Singular</text>
-              <text x="55" y="175" text-anchor="middle" fill="#18181B" font-size="4.2" font-family="Cormorant Garamond, serif" font-weight="700">RIOJA</text>
-              <text x="55" y="181" text-anchor="middle" fill="#3F3F46" font-size="3.2" font-family="Plus Jakarta Sans, sans-serif">TEMPRANILLO</text>
+              ${backgroundPattern}
+              ${shieldSVG}
+              <!-- Tipografía directa sobre el diseño tal cual la botella real -->
+              <text x="55" y="162" text-anchor="middle" fill="#111111" stroke="#F4F4F5" stroke-width="0.25" paint-order="stroke" font-size="4.1" font-family="Plus Jakarta Sans, sans-serif" font-weight="700" letter-spacing="0.4">VIÑEDOS DE SONSIERRA</text>
+              <text x="55" y="170" text-anchor="middle" fill="#09090B" stroke="#F4F4F5" stroke-width="0.35" paint-order="stroke" font-size="${wine.singularName.length > 14 ? '6.2' : '7.4'}" font-family="Cormorant Garamond, serif" font-weight="700">${wine.singularName}</text>
+              <text x="55" y="176" text-anchor="middle" fill="#18181B" stroke="#F4F4F5" stroke-width="0.2" paint-order="stroke" font-size="3.9" font-family="Cormorant Garamond, serif" font-weight="700">Viñedo Singular</text>
+              <text x="55" y="184" text-anchor="middle" fill="#111111" stroke="#F4F4F5" stroke-width="0.25" paint-order="stroke" font-size="4.4" font-family="Plus Jakarta Sans, sans-serif" font-weight="700" letter-spacing="0.4">RIOJA</text>
+              <text x="55" y="187.5" text-anchor="middle" fill="#27272A" font-size="2.1" font-family="Plus Jakarta Sans, sans-serif" font-weight="600">DENOMINACIÓN DE ORIGEN CALIFICADA</text>
+              <text x="55" y="192" text-anchor="middle" fill="#18181B" font-size="3" font-family="Plus Jakarta Sans, sans-serif" font-weight="600" letter-spacing="0.5">TEMPRANILLO</text>
             </g>
           </svg>`;
       }
 
+      // 3. PAGOS DE LA SONSIERRA
       if (wine.labelType === "pagos") {
         return `
           <svg viewBox="0 0 110 230" class="${sizeClass} mx-auto drop-shadow-[0_12px_20px_rgba(0,0,0,0.65)]">
@@ -1215,6 +1272,7 @@
           </svg>`;
       }
 
+      // 4. FAMILIA MINDIARTE
       if (wine.labelType === "mindiarte") {
         return `
           <svg viewBox="0 0 110 230" class="${sizeClass} mx-auto drop-shadow-[0_12px_20px_rgba(0,0,0,0.65)]">
@@ -1245,6 +1303,7 @@
           </svg>`;
       }
 
+      // 5. SONSIERRA JÓVENES
       if (wine.labelType === "sonsierra-joven") {
         return `
           <svg viewBox="0 0 110 230" class="${sizeClass} mx-auto drop-shadow-[0_12px_20px_rgba(0,0,0,0.65)]">
@@ -1269,6 +1328,7 @@
           </svg>`;
       }
 
+      // 6. SONSIERRA CLÁSICOS
       const bgLabel = wine.darkLabel ? "#2E2E32" : "#FAF8F5";
       const mainBrandColor = wine.goldText ? "#C5A059" : "#18181B";
       const mountainStroke = wine.goldText ? "#C5A059" : "#8E8D8A";
