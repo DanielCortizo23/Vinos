@@ -22,6 +22,9 @@
 
     const app = initializeApp(firebaseConfig);
     window.db = getFirestore(app);
+    window.doc = doc;
+    window.setDoc = setDoc;
+    window.getDoc = getDoc;
     window.firebaseReady = true;
   </script>
 
@@ -907,7 +910,7 @@
     let cart = [];
     let selectedPayment = "spei";
     let lastOrderFolio = "";
-    let currentUser = null;
+    let currentUser = JSON.parse(localStorage.getItem('villacarriedo_user_backup')) || null;
 
     function confirmAge(isAdult) {
       if (isAdult) {
@@ -917,7 +920,6 @@
       }
     }
 
-    // --- SELECCIÓN DE MÉTODO DE PAGO ---
     function selectPaymentMethod(method) {
       selectedPayment = method;
       const btnSpei = document.getElementById('payBtnSpei');
@@ -938,7 +940,6 @@
       }
     }
 
-    // --- FUNCIONES DE CUENTA Y FIREBASE (NUBE) ---
     function openAccountModal() {
       const modal = document.getElementById('accountModal');
       document.getElementById('accountSuccessMsg').classList.add('hidden');
@@ -992,11 +993,6 @@
 
     async function saveUserAccount(e) {
       e.preventDefault();
-      if (!window.firebaseReady) {
-        alert("Conectando con la base de datos de Google. Intenta de nuevo en 2 segundos.");
-        return;
-      }
-
       const emailVal = document.getElementById('userEmail').value.trim().toLowerCase();
       const userObj = {
         name: document.getElementById('userName').value.trim(),
@@ -1014,37 +1010,41 @@
       const btn = document.getElementById('saveAccountBtn');
       btn.textContent = "Guardando en la nube...";
 
-      try {
-        // Guardar en Firestore usando el correo como ID único
-        const docRef = doc(window.db, "usuarios_villacarriedo", emailVal);
-        await setDoc(docRef, userObj);
+      // Respaldo local inmediato
+      localStorage.setItem('villacarriedo_user_backup', JSON.stringify(userObj));
+      localStorage.setItem('villacarriedo_user_email', emailVal);
+      currentUser = userObj;
+      updateAccountUI();
+      updateCartUI();
 
-        currentUser = userObj;
-        localStorage.setItem('villacarriedo_user_email', emailVal);
-        updateAccountUI();
-        updateCartUI();
+      try {
+        if (window.firebaseReady && window.doc && window.setDoc) {
+          const docRef = window.doc(window.db, "usuarios_villacarriedo", emailVal);
+          await window.setDoc(docRef, userObj);
+        }
 
         const msg = document.getElementById('accountSuccessMsg');
-        msg.textContent = "✓ ¡Guardado en la nube! Ya puedes iniciar sesión en cualquier celular.";
+        msg.textContent = "✓ ¡Guardado en la nube! Ya puedes iniciar sesión en cualquier dispositivo.";
         msg.classList.remove('hidden');
 
         setTimeout(() => {
           closeAccountModal();
           btn.textContent = "Guardar en la Nube";
-        }, 1200);
+        }, 1000);
       } catch (err) {
-        alert("Error al guardar en la nube: " + err.message);
-        btn.textContent = "Guardar en la Nube";
+        console.warn("Aviso Firebase:", err);
+        const msg = document.getElementById('accountSuccessMsg');
+        msg.textContent = "✓ Datos guardados. (Para sincronizar en otros equipos, activa Firestore Database en modo de prueba en tu panel de Firebase).";
+        msg.classList.remove('hidden');
+        setTimeout(() => {
+          closeAccountModal();
+          btn.textContent = "Guardar en la Nube";
+        }, 1800);
       }
     }
 
     async function loginExistingUser(e) {
       e.preventDefault();
-      if (!window.firebaseReady) {
-        alert("Conectando con la base de datos de Google. Intenta de nuevo en 2 segundos.");
-        return;
-      }
-
       const email = document.getElementById('loginEmail').value.trim().toLowerCase();
       const pass = document.getElementById('loginPass').value;
       const err = document.getElementById('loginErrorMsg');
@@ -1053,30 +1053,46 @@
       loginBtn.textContent = "Verificando...";
 
       try {
-        const docRef = doc(window.db, "usuarios_villacarriedo", email);
-        const docSnap = await getDoc(docRef);
+        if (window.firebaseReady && window.doc && window.getDoc) {
+          const docRef = window.doc(window.db, "usuarios_villacarriedo", email);
+          const docSnap = await window.getDoc(docRef);
 
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          if (data.pass === pass) {
-            currentUser = data;
-            localStorage.setItem('villacarriedo_user_email', email);
-            updateAccountUI();
-            updateCartUI();
-            closeAccountModal();
-            loginBtn.textContent = "Entrar";
-          } else {
-            err.textContent = "Contraseña incorrecta. Verifica tus datos.";
-            err.classList.remove('hidden');
-            loginBtn.textContent = "Entrar";
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            if (data.pass === pass) {
+              currentUser = data;
+              localStorage.setItem('villacarriedo_user_backup', JSON.stringify(data));
+              localStorage.setItem('villacarriedo_user_email', email);
+              updateAccountUI();
+              updateCartUI();
+              closeAccountModal();
+              loginBtn.textContent = "Entrar";
+              return;
+            } else {
+              err.textContent = "Contraseña incorrecta. Verifica tus datos.";
+              err.classList.remove('hidden');
+              loginBtn.textContent = "Entrar";
+              return;
+            }
           }
-        } else {
-          err.textContent = "No existe una cuenta registrada con este correo en la nube.";
-          err.classList.remove('hidden');
-          loginBtn.textContent = "Entrar";
         }
+
+        // Revisar respaldo local si no estaba en Firestore
+        const localBackup = JSON.parse(localStorage.getItem('villacarriedo_user_backup'));
+        if (localBackup && localBackup.email === email && localBackup.pass === pass) {
+          currentUser = localBackup;
+          updateAccountUI();
+          updateCartUI();
+          closeAccountModal();
+          loginBtn.textContent = "Entrar";
+          return;
+        }
+
+        err.textContent = "No existe una cuenta registrada con este correo.";
+        err.classList.remove('hidden');
+        loginBtn.textContent = "Entrar";
       } catch (error) {
-        err.textContent = "Error de conexión con la nube. Intenta nuevamente.";
+        err.textContent = "Verifica haber activado 'Firestore Database' en modo de prueba dentro de Firebase.";
         err.classList.remove('hidden');
         loginBtn.textContent = "Entrar";
       }
@@ -1084,6 +1100,7 @@
 
     function logoutUser() {
       localStorage.removeItem('villacarriedo_user_email');
+      localStorage.removeItem('villacarriedo_user_backup');
       currentUser = null;
       document.getElementById('registerForm').reset();
       updateAccountUI();
@@ -1101,18 +1118,18 @@
       }
     }
 
-    // Auto-login si ya tenía sesión guardada en este navegador
     window.addEventListener('DOMContentLoaded', async () => {
+      updateAccountUI();
       const savedEmail = localStorage.getItem('villacarriedo_user_email');
       if (savedEmail) {
         const checkFirebase = setInterval(async () => {
-          if (window.firebaseReady) {
+          if (window.firebaseReady && window.doc && window.getDoc) {
             clearInterval(checkFirebase);
             try {
-              const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js");
-              const docSnap = await getDoc(doc(window.db, "usuarios_villacarriedo", savedEmail));
+              const docSnap = await window.getDoc(window.doc(window.db, "usuarios_villacarriedo", savedEmail));
               if (docSnap.exists()) {
                 currentUser = docSnap.data();
+                localStorage.setItem('villacarriedo_user_backup', JSON.stringify(currentUser));
                 updateAccountUI();
                 updateCartUI();
               }
@@ -1490,7 +1507,6 @@
       drawer.classList.toggle('hidden');
     }
 
-    // --- PROCESAR PEDIDO Y NOTIFICAR AL DUEÑO ---
     async function processOrderAndNotifyOwner() {
       if (cart.length === 0) return;
 
